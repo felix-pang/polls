@@ -1,11 +1,38 @@
-// managing the poll list
+// Managing the poll list
 polls.controller('PollListController', function($scope, Poll) {
 	$scope.polls = Poll.query();
 });
 // Voting / viewing poll results
-polls.controller('PollItemController', function($scope, $routeParams, Poll) {
+// polls.controller('PollItemController', function($scope, $routeParams, Poll) {
+polls.controller('PollItemController', function($scope, $routeParams, Poll, socket) {
+	// poll.get by id
 	$scope.poll = Poll.get({ pollId: $routeParams.pollId });
-	$scope.vote = function() {};
+	// vote function
+	$scope.vote = function() {
+		var pollId = $scope.poll._id,
+			choiceId = $scope.poll.userVote;
+		if (choiceId) {
+			var voteObj = { poll_id: pollId, choice: choiceId };
+			socket.emit('send:vote', voteObj);
+		} else {
+			alert('You must select an option to vote for');
+		}
+	};
+	$scope.ss = '';
+	// socket
+	socket.on('myvote', function(data) {
+		console.dir(data);
+		if (data._id === $routeParams.pollId) {
+			$scope.poll = data;
+		}
+	});
+	socket.on('vote', function(data) {
+		console.dir(data);
+		if (data._id === $routeParams.pollId) {
+			$scope.poll.choices = data.choices;
+			$scope.poll.totalVotes = data.totalVotes;
+		}
+	});
 });
 //Creating a new poll
 polls.controller('PollNewController', function($scope, $location, Poll) {
